@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+    <style>
+      body {
+        display: flex;
+        width: 100dvw;
+        height: 100dvh;
+        justify-content: center;
+        font-family: sans-serif;
+      }
+      .graficos {
+        display: flex;
+        flex-direction: column;
+
+        margin-top: 50px;
+        width: 800px;
+      }
+      .grafico {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px;
+        min-height: 30rem;
+      }
+      #botaoQ7Rosca {
+        border: 2px solid rgb(223, 136, 136);
+        border-radius: 5px;
+        cursor: pointer;
+        width: 80px;
+        height: 30px;
+        color: white;
+        background-color: rgb(206, 101, 101);
+      }
+      #botaoQ7Rosca:active {
+        color: rgb(230, 227, 227);
+        background-color: rgb(194, 193, 193);
+        border: 2px solid rgb(228, 228, 228);
+      }
+      #botaoQ7Barra {
+        border: 2px solid rgb(136, 223, 143);
+        border-radius: 5px;
+        cursor: pointer;
+        width: 80px;
+        height: 30px;
+        background-color: rgb(101, 206, 110);
+      }
+      #botaoQ7Barra:active {
+        color: rgb(230, 227, 227);
+        background-color: rgb(194, 193, 193);
+        border: 2px solid rgb(228, 228, 228);
+      }
+
+      .verde {
+        background-color: rgb(0, 165, 14);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="graficos">
+      <div class="grafico">
+        <h1>Grafico Barras - Questao 1</h1>
+        <canvas id="graficoQ1"></canvas>
+      </div>
+
+      <div class="grafico">
+        <h1>Grafico Doughnut - Questao 2</h1>
+        <canvas id="graficoQ2"></canvas>
+      </div>
+
+      <div class="grafico">
+        <h1>Grafico Linhas - Questao 3</h1>
+        <canvas id="graficoQ3"></canvas>
+      </div>
+
+      <div class="grafico">
+        <h1>Grafico Barras Horizontais - Questao 4</h1>
+        <canvas id="graficoQ4"></canvas>
+      </div>
+
+      <div class="grafico">
+        <h1>Grafico Linhas - Questao 5</h1>
+        <canvas id="graficoQ5"></canvas>
+      </div>
+
+      <div class="grafico">
+        <h1>Grafico Linhas - Questao 6</h1>
+        <canvas id="graficoQ6"></canvas>
+      </div>
+
+      <div class="grafico">
+        <h1>Grafico Linhas - Questao 7</h1>
+        <div>
+          <button id="botaoQ7Rosca" onclick="trocarGraficoRosca()">
+            Rosca
+          </button>
+          <button id="botaoQ7Barra" onclick="trocarGraficoBarra()">
+            Barra
+          </button>
+        </div>
+        <canvas id="graficoQ7"></canvas>
+      </div>
+    </div>
+    <script>
+      function converteCsv() {
+        const dados = `id,tipo_chamado,tempo_gasto,data_chamado,titulo,categoria_detalhada
+    1,Bug,3.5,2026-01-15,Erro na leitura de CNPJ,Leitura CNPJ/CPF
+    2,Melhoria,1.0,2026-01-20,Novo campo de impostos,Impostos
+    3,Bug,5.0,2026-02-10,PDF nao processado,Erro OCR
+    4,Bug,2.0,2026-02-15,Valor incorreto na nota,Valor monetario
+    5,Melhoria,0.5,2026-03-01,Melhorar template,Mapeamento
+    6,Bug,4.0,2026-03-10,CNPJ fornecedor errado,Leitura CNPJ/CPF
+    7,Bug,1.5,2026-03-15,Aliquota ISS incorreta,Impostos
+    8,Melhoria,2.0,2026-04-01,Dashboard de monitoramento,Mapeamento
+    9,Bug,6.0,2026-04-12,Layout novo nao mapeado,Erro OCR
+    10,Bug,3.0,2026-04-20,Codigo de barras ilegivel,Valor monetario
+    `;
+
+        const linhas = dados.trim().split("\n");
+        const cabecalho = linhas[0].split(",");
+        let csvConvertido = {};
+
+        linhas.slice(1).forEach((linha) => {
+          const valores = linha.split(",");
+          const id = valores[0].trim();
+          const dadosLinha = {};
+
+          for (let i = 1; i < cabecalho.length; i++) {
+            const chave = cabecalho[i];
+            let valor = valores[i].trim();
+
+            dadosLinha[chave] = valor;
+          }
+
+          csvConvertido[id] = dadosLinha;
+        });
+
+        return csvConvertido;
+      }
+
+      function filtraDados(dados, filtro) {
+        let dadosFiltrados = {};
+
+        let coverteObj = Object.values(dados);
+        for (let i = 0; i < coverteObj.length; i++) {
+          let linha = coverteObj[i];
+          let valor = linha[filtro];
+
+          if (valor !== undefined) {
+            if (dadosFiltrados[valor] === undefined) {
+              dadosFiltrados[valor] = 1;
+            } else {
+              dadosFiltrados[valor] += 1;
+            }
+          }
+        }
+
+        let arrayChaves = [];
+        let arrayValores = [];
+
+        for (let chave in dadosFiltrados) {
+          arrayChaves.push(chave);
+          arrayValores.push(dadosFiltrados[chave]);
+        }
+
+        return [arrayChaves, arrayValores];
+      }
+
+      const dadosCsv = converteCsv();
+
+      // Questao 1
+      {
+        const ctxQ1 = document.querySelector("#graficoQ1");
+        const dadosQ1 = filtraDados(dadosCsv, "categoria_detalhada");
+
+        new Chart(ctxQ1, {
+          type: "bar",
+
+          data: {
+            labels: dadosQ1[0],
+            datasets: [
+              {
+                label: "Total de chamados",
+                data: dadosQ1[1],
+                backgroundColor: ["#ef4444", "#6366f1"],
+                borderRadius: 8,
+                borderSkipped: false,
+                barThickness: 80,
+              },
+            ],
+          },
+
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { display: false } },
+              y: { beginAtZero: true },
+            },
+          },
+        });
+      }
+
+      // Questao 2
+      {
+        const ctxQ2 = document.querySelector("#graficoQ2");
+        const dadosQ2 = filtraDados(dadosCsv, "tipo_chamado");
+
+        function formataLabelPorcentagem(dados) {
+          const total = dados[1].reduce((a, b) => a + b, 0);
+          const dadosPc = dados[1].map((d) => (d / total) * 100);
+          let retorno = [];
+          for (let i = 0; i < dados[0].length; i++) {
+            retorno.push(`${dados[0][i]}: ${dadosPc[i]}%`);
+          }
+
+          return retorno;
+        }
+
+        new Chart(ctxQ2, {
+          type: "doughnut",
+          plugins: [ChartDataLabels],
+          data: {
+            labels: formataLabelPorcentagem(dadosQ2),
+            datasets: [
+              {
+                label: "Total de chamados",
+                data: dadosQ2[1],
+                backgroundColor: ["#ef4444", "#6366f1"],
+                borderRadius: 8,
+                borderSkipped: false,
+                barThickness: 80,
+              },
+            ],
+          },
+
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              datalabels: {
+                color: "#fff",
+                formatter: function (value) {
+                  return value + "0%";
+                },
+              },
+              legend: { position: "right" },
+            },
+          },
+        });
+      }
+
+      // Questao 3
+      {
+        const ctxQ3 = document.querySelector("#graficoQ3");
+
+        let dataQ3 = {};
+
+        Object.entries(dadosCsv)
+          .map(([k, v]) => [k, v])
+          .forEach((element) => {
+            let mes = `${element[1]["data_chamado"].split("-")[1]}/${element[1]["data_chamado"].split("-")[0]}`;
+            if (!dataQ3[mes]) {
+              dataQ3[mes] = 0;
+            }
+            dataQ3[mes] += parseFloat(element[1]["tempo_gasto"]);
+          });
+
+        const dadosQ3 = [
+          Object.entries(dataQ3).map(([k, v]) => v),
+          Object.entries(dataQ3).map(([k, v]) => k),
+        ];
+
+        new Chart(ctxQ3, {
+          type: "line",
+          plugins: [ChartDataLabels],
+          data: {
+            labels: dadosQ3[1],
+            datasets: [
+              {
+                label: "Horas",
+                data: dadosQ3[0],
+                borderColor: ["rgba(239, 68, 68 , 1)"],
+                backgroundColor: ["rgba(239, 68, 68 , 0.15)"],
+                borderRadius: 8,
+                borderSkipped: false,
+                fill: true,
+                tension: 0.4,
+              },
+            ],
+          },
+
+          options: {
+            plugins: {
+              legend: { display: false },
+              datalabels: {
+                display: true,
+                anchor: "end",
+                align: "top",
+                offset: 2,
+                font: {
+                  size: 10,
+                  weight: 600,
+                },
+
+                color: function (ctx) {
+                  return ctx.dataset.borderColor;
+                },
+              },
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { grid: { display: false } },
+              y: { beginAtZero: true },
+            },
+          },
+        });
+      }
+
+      // Questao 4
+      {
+        const ctxQ4 = document.querySelector("#graficoQ4");
+
+        const dataQ4 = {};
+
+        Object.entries(dadosCsv)
+          .map(([k, v]) => [k, v])
+          .forEach((element) => {
+            let cat = `${element[1]["categoria_detalhada"]}`;
+            if (!dataQ4[cat]) {
+              dataQ4[cat] = {};
+              dataQ4[cat]["tempo"] = 0;
+              dataQ4[cat]["chamados"] = 0;
+            }
+            dataQ4[cat]["tempo"] += parseFloat(element[1]["tempo_gasto"]);
+            dataQ4[cat]["chamados"] += 1;
+          });
+
+        const dadosQ4 = [
+          Object.entries(dataQ4).map(([k, v]) => k),
+          Object.entries(dataQ4).map(([k, v]) => v["tempo"] / v["chamados"]),
+        ];
+
+        new Chart(ctxQ4, {
+          type: "bar",
+          plugins: [ChartDataLabels],
+          data: {
+            labels: dadosQ4[0],
+            datasets: [
+              {
+                label: "Media de horas",
+                data: dadosQ4[1],
+                backgroundColor: ["rgb(109, 97, 189)"],
+                borderRadius: 8,
+                borderSkipped: false,
+                barThickness: 80,
+              },
+            ],
+          },
+
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: "y",
+            layout: {
+              padding: { right: 40 },
+            },
+            plugins: {
+              legend: { display: false },
+              datalabels: {
+                display: true,
+                anchor: "end",
+                align: "right",
+                color: "var(--text)",
+                font: { weight: "bold", size: 11 },
+                formatter: (value) => Number(value).toFixed(1) + "h",
+              },
+            },
+            scales: {
+              x: { grid: { display: false } },
+              y: { grid: { display: false } },
+            },
+          },
+        });
+      }
+
+      // Questao 5
+      {
+        const ctxQ5 = document.querySelector("#graficoQ5");
+
+        const dataQ5 = {};
+
+        Object.entries(dadosCsv)
+          .map(([k, v]) => [k, v])
+          .forEach((element) => {
+            let mes = `${element[1]["data_chamado"].split("-")[1]}/${element[1]["data_chamado"].split("-")[0]}`;
+            if (!dataQ5[mes]) {
+              dataQ5[mes] = {};
+              dataQ5[mes]["bug"] = 0;
+              dataQ5[mes]["melhoria"] = 0;
+            }
+            if (element[1]["tipo_chamado"] == "Bug") {
+              dataQ5[mes]["bug"] += 1;
+            } else {
+              dataQ5[mes]["melhoria"] += 1;
+            }
+          });
+
+        const dadosQ5 = [
+          Object.entries(dataQ5).map(([k, v]) => k),
+          Object.entries(dataQ5).map(([k, v]) => v["bug"]),
+          Object.entries(dataQ5).map(([k, v]) => v["melhoria"]),
+        ];
+
+        new Chart(ctxQ5, {
+          type: "bar",
+          plugins: [ChartDataLabels],
+          data: {
+            labels: dadosQ5[0],
+            datasets: [
+              {
+                label: "Bug",
+                data: dadosQ5[1],
+                backgroundColor: ["#6366f1"],
+
+                borderSkipped: false,
+                barThickness: 80,
+              },
+              {
+                label: "Melhoria",
+                data: dadosQ5[2],
+                backgroundColor: ["#ef4444"],
+                borderSkipped: false,
+                barThickness: 80,
+              },
+            ],
+          },
+
+          options: {
+            scales: {
+              y: { stacked: true },
+              x: { stacked: true },
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+              legend: { display: false },
+              datalabels: {
+                display: function (ctx) {
+                  return ctx.dataset.data[ctx.dataIndex] > 0;
+                },
+
+                color: "#fff",
+                anchor: "center",
+                align: "center",
+              },
+            },
+          },
+        });
+      }
+
+      // Questao 6
+      {
+        const ctxQ6 = document.querySelector("#graficoQ6");
+
+        const dataQ6 = {};
+
+        Object.entries(dadosCsv)
+          .map(([k, v]) => [k, v])
+          .forEach((element) => {
+            let mes = `${element[1]["data_chamado"].split("-")[1]}/${element[1]["data_chamado"].split("-")[0]}`;
+            if (!dataQ6[mes]) {
+              dataQ6[mes] = {};
+              dataQ6[mes]["bug"] = 0;
+              dataQ6[mes]["melhoria"] = 0;
+            }
+            if (element[1]["tipo_chamado"] == "Bug") {
+              dataQ6[mes]["bug"] += 1;
+            } else {
+              dataQ6[mes]["melhoria"] += 1;
+            }
+          });
+
+        const dadosQ6 = [
+          Object.entries(dataQ6).map(([k, v]) => k),
+          Object.entries(dataQ6).map(([k, v]) => v["bug"]),
+          Object.entries(dataQ6).map(([k, v]) => v["melhoria"]),
+        ];
+
+        new Chart(ctxQ6, {
+          type: "line",
+          plugins: [ChartDataLabels],
+          data: {
+            labels: dadosQ6[0],
+            datasets: [
+              {
+                label: "Bug",
+                data: dadosQ6[1],
+                borderColor: ["#6366f1"],
+                backgroundColor: ["#6366f118"],
+                borderSkipped: false,
+                barThickness: 80,
+                fill: true,
+                tension: 0.35,
+              },
+              {
+                label: "Melhoria",
+                data: dadosQ6[2],
+                borderColor: ["#ef4444"],
+                backgroundColor: ["#ef444418"],
+                borderSkipped: false,
+                barThickness: 80,
+                fill: true,
+                tension: 0.35,
+              },
+            ],
+          },
+
+          options: {
+            scales: {
+              x: { grid: { display: false } },
+              y: {
+                beginAtZero: true,
+                grid: { color: "#f0f0f0" },
+                ticks: { stepSize: 1 },
+              },
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+              legend: { display: false },
+              datalabels: {
+                display: true,
+                anchor: "end",
+                align: "top",
+                offset: 2,
+                font: {
+                  size: 10,
+                  weight: 600,
+                },
+
+                color: function (ctx) {
+                  return ctx.dataset.borderColor;
+                },
+              },
+            },
+          },
+        });
+      }
+
+      // Questao 7
+      {
+        const dadosQ7 = filtraDados(dadosCsv, "categoria_detalhada");
+        let graficoQ7 = null;
+
+        function trocarGraficoRosca() {
+          const ctxQ7 = document.querySelector("#graficoQ7");
+
+          if (graficoQ7) {
+            graficoQ7.destroy();
+            graficoQ7 = null;
+          }
+
+          graficoQ7 = new Chart(ctxQ7, {
+            type: "doughnut",
+            plugins: [ChartDataLabels],
+
+            data: {
+              labels: dadosQ7[0],
+              datasets: [
+                {
+                  label: "Total de chamados",
+                  data: dadosQ7[1],
+                  backgroundColor: ["#ef4444", "#6366f1"],
+                  borderRadius: 8,
+                  borderSkipped: false,
+                  barThickness: 80,
+                },
+              ],
+            },
+
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                datalabels: { color: "#fff" },
+                legend: { display: false },
+              },
+            },
+          });
+        }
+
+        function trocarGraficoBarra() {
+          const ctxQ7 = document.querySelector("#graficoQ7");
+
+          if (graficoQ7) {
+            graficoQ7.destroy();
+            graficoQ7 = null;
+          }
+
+          graficoQ7 = new Chart(ctxQ7, {
+            type: "bar",
+
+            data: {
+              labels: dadosQ7[0],
+              datasets: [
+                {
+                  label: "Total de chamados",
+                  data: dadosQ7[1],
+                  backgroundColor: ["#ef4444", "#6366f1"],
+                  borderRadius: 8,
+                  borderSkipped: false,
+                  barThickness: 80,
+                },
+              ],
+            },
+
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+            },
+          });
+        }
+      }
+    </script>
+  </body>
+</html>
