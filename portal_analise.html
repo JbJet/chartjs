@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leitura.analytics</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?
+    family=DM+Sans:wght@400;500;600;700
+    &family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+    <!-- Questao 14 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg: #f8f7f4;
+        --card: #fff;
+        --text: #1e1e1e;
+        --muted: #8a8a8a;
+        --border: #ebebeb;
+
+        --p1: #6366f1;
+        --p1l: #eef2ff;
+        --p2: #f59e0b;
+        --p3: #10b981;
+        --p4: #ef4444;
+        --p5: #8b5cf6;
+
+        --sh: 0 1px 3px rgba(0, 0, 0, 0.06);
+        --shl: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      .upload-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 2rem;
+        animation: up 0.5s ease;
+      }
+
+      @keyframes up {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .logo {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--p1);
+      }
+
+      .logo em {
+        font-style: normal;
+        color: var(--p2);
+      }
+
+      .tab-row {
+        display: flex;
+        gap: 0;
+        margin-bottom: 1.5rem;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .tab-btn {
+        flex: 1;
+        padding: 10px 16px;
+        border: none;
+        cursor: pointer;
+        background: transparent;
+        color: var(--muted);
+      }
+
+      .tab-btn.active {
+        background: var(--p1);
+        color: #fff;
+      }
+
+      .tab-panel {
+        display: none;
+        width: 100%;
+        max-width: 600px;
+      }
+
+      .tab-panel.active {
+        display: block;
+      }
+
+      .dz {
+        width: 100%;
+        max-width: 520px;
+        border: 2px dashed var(--border);
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: var(--card);
+      }
+
+      .dz:hover,
+      .dz.ov {
+        border-color: var(--p1);
+        background: var(--p1l);
+        transform: translateY(-2px);
+      }
+
+      .dz input {
+        display: none;
+      }
+
+      #dash {
+        display: none;
+        animation: up 0.5s ease;
+      }
+
+      .ct {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 1.25rem 1.5rem;
+      }
+
+      .kg {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+        gap: 8px;
+        margin-bottom: 1.25rem;
+      }
+
+      .kpi {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.85rem 1rem;
+        box-shadow: var(--sh);
+        transition: transform 0.15s;
+      }
+
+      .kpi:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shl);
+      }
+
+      .kpi-l {
+        font-size: 0.66rem;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .kpi-v {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      .r2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      @media (max-width: 820px) {
+        .r2 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.76rem;
+      }
+
+      th {
+        text-align: left;
+        padding: 5px 8px;
+        border-bottom: 2px solid var(--border);
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      td {
+        padding: 5px 8px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      tr:hover td {
+        background: var(--p1l);
+      }
+
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.67rem;
+      }
+
+      .spin {
+        display: none;
+        margin: 1.5rem auto;
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--border);
+        border-top-color: var(--p1);
+        border-radius: 50%;
+        animation: sp 0.6s linear infinite;
+      }
+
+      @keyframes sp {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Questao 11 */
+      :root.dark {
+        --bg: #121212;
+        --card: #1e1e1e;
+        --text: #f3f4f6;
+        --muted: #9ca3af;
+        --border: #374151;
+
+        --p1l: #3730a3;
+        --sh: 0 1px 3px rgba(0, 0, 0, 0.5);
+        --shl: 0 4px 12px rgba(0, 0, 0, 0.6);
+      }
+      :root.dark select,
+      :root.dark input {
+        background-color: var(--card);
+        color: var(--text);
+        border-color: var(--border);
+      }
+
+      /* Questao 13 */
+      #alertaId {
+        background: #fff3cd;
+        color: #856404;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #ffeeba;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app">
+      <div class="upload-screen" id="uploadScreen">
+        <div class="logo">Leitura<em>.</em>analytics</div>
+        <p class="usub">Análise completa de chamados. Carregue um CSV.</p>
+
+        <!-- Abas -->
+        <div class="tab-row">
+          <button class="tab-btn active" onclick="switchTab('sql')">
+            Extrair do Help360
+          </button>
+          <button class="tab-btn" onclick="switchTab('csv')">
+            Carregar CSV
+          </button>
+        </div>
+
+        <!-- Painel SQL -->
+        <div class="tab-panel active" id="tabSql">
+          <div class="sql-panel">
+            <h3>1. Selecione o período</h3>
+            <div class="date-row">
+              <div class="date-group">
+                <label>Data início</label>
+                <input type="date" id="dtStart" value="2026-01-01" />
+                <label>Data Final</label>
+                <input type="date" id="dtEnd" value="2027-01-01" />
+              </div>
+              <button class="btn btn-primary" onclick="genSQL()">
+                Gerar SQL
+              </button>
+            </div>
+            <div class="sql-box" id="sqlBox"><pre id="sqlPre"></pre></div>
+            <button class="btn btn-ghost" onclick="copySQL()">
+              Copiar SQL
+            </button>
+          </div>
+
+          <!-- Drop zone da aba SQL -->
+          <div class="dz" id="dropZone2">
+            <p>Arraste o CSV exportado aqui</p>
+            <input type="file" id="fi2" accept=".csv,.txt" />
+          </div>
+        </div>
+
+        <!-- Painel CSV -->
+        <div class="tab-panel" id="tabCsv">
+          <div class="dz" id="dropZone">
+            <p>Arraste o CSV aqui ou clique</p>
+            <input type="file" id="fi1" accept=".csv,.txt" />
+          </div>
+        </div>
+
+        <div id="errMsg"></div>
+        <div class="spin" id="spinner"></div>
+      </div>
+
+      <div id="dash">
+        <div class="ct">
+          <div class="tb">
+            <h1>Leitura<em>.</em>analytics</h1>
+            <div style="display: flex; gap: 6px; align-items: center">
+              <div class="bdg" id="pBdg"></div>
+              <!-- Questao 14 -->
+              <button
+                id="btnPdf"
+                class="btn btn-primary"
+                onclick="exportarPDF()"
+              >
+                Exportar PDF
+              </button>
+              <!-- Questao 11 -->
+              <button class="btn btn-ghost" onclick="toggleTheme()">
+                Mudar tema
+              </button>
+              <button class="btn btn-danger" onclick="doReset()">
+                Novo CSV
+              </button>
+              <button class="btn btn-primary" onclick="exportJSON()">
+                Exportar JSON
+              </button>
+            </div>
+          </div>
+          <div class="exportaPDF">
+            <div class="fbar" id="fBar" style="display: none"></div>
+            <div id="kpiG" class="kg"></div>
+            <div id="secs"></div>
+          </div>
+          <div class="ft">100% local - nenhum dado enviado a servidores</div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const P = [
+        "#6366f1",
+        "#f59e0b",
+        "#10b981",
+        "#ef4444",
+        "#8b5cf6",
+        "#06b6d4",
+        "#f97316",
+        "#ec4899",
+        "#14b8a6",
+        "#64748b",
+        "#a855f7",
+        "#0ea5e9",
+        "#84cc16",
+        "#e11d48",
+      ];
+
+      // Cores por tipo de fluxo
+      const FC = {
+        Serviço: "#6366f1",
+        Concessionária: "#f59e0b",
+        Material: "#10b981",
+        "Outros documentos": "#8b5cf6",
+      };
+
+      // Cores para tags de tipo [fundo, texto]
+      const TC = {
+        Bug: ["#fef2f2", "#ef4444"],
+        Melhoria: ["#eef2ff", "#6366f1"],
+      };
+
+      let ALL = []; // Todos os registros do CSV
+      let FILTERED = [];
+      let C = {}; // Mapeamento de colunas detectadas
+      let charts = []; // Referências aos gráficos Chart.js
+
+      const $ = (id) => document.getElementById(id);
+
+      function pct(valor, total) {
+        return total ? (valor / total) * 100 : 0;
+      }
+
+      function fp(valor) {
+        return valor.toFixed(1) + "%";
+      }
+
+      function fn(valor) {
+        return Number(valor).toLocaleString("pt-BR", {
+          maximumFractionDigits: 1,
+        });
+      }
+
+      // Escape HTML para prevenir XSS
+      function esc(str) {
+        const div = document.createElement("div");
+        div.textContent = str || "";
+        return div.innerHTML;
+      }
+
+      // "2026-03" -> "Mar/26"
+      function mL(ym) {
+        const [y, m] = ym.split("-");
+        const meses = [
+          "",
+          "Jan",
+          "Fev",
+          "Mar",
+          "Abr",
+          "Mai",
+          "Jun",
+          "Jul",
+          "Ago",
+          "Set",
+          "Out",
+          "Nov",
+          "Dez",
+        ];
+        return meses[+m] + "/" + y.slice(2);
+      }
+
+      // Mediana de array numérico
+      function med(arr) {
+        if (!arr.length) return 0;
+        const s = [...arr].sort((a, b) => a - b);
+        const mid = Math.floor(s.length / 2);
+        return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+      }
+
+      // Contagem + ordenação: [["Bug",42],["Melhoria",15]]
+      function cm(arr) {
+        const map = {};
+        arr.forEach((v) => {
+          if (v) map[v] = (map[v] || 0) + 1;
+        });
+        return Object.entries(map).sort((a, b) => b[1] - a[1]);
+      }
+
+      // Busca nome de coluna (aceita variações)
+      function findC(fields, nomes) {
+        const lower = fields.map((x) => x.toLowerCase().trim());
+        for (const nome of nomes) {
+          const idx = lower.indexOf(nome.toLowerCase());
+          if (idx >= 0) return fields[idx];
+        }
+        return null;
+      }
+
+      function switchTab(tab) {
+        document.querySelectorAll(".tab-btn").forEach((btn, i) => {
+          btn.classList.toggle("active", i === (tab === "sql" ? 0 : 1));
+        });
+        document.querySelectorAll(".tab-panel").forEach((panel, i) => {
+          panel.classList.toggle("active", i === (tab === "sql" ? 0 : 1));
+        });
+      }
+
+      function genSQL() {
+        const dataInicio = $("dtStart").value || "2026-01-01";
+        const dataFim = $("dtEnd").value || "2027-01-01";
+        let dateFilter = `COALESCE(vt.created_at, vht.created_at) >= '${dataInicio}'`;
+        if (dataFim) {
+          dateFilter += `\n    AND COALESCE(...) <= '${dataFim} 23:59:59'`;
+        }
+        const sql = `SELECT vht.id, ... WHERE ${dateFilter}`;
+        $("sqlPre").textContent = sql;
+      }
+
+      function copySQL() {
+        navigator.clipboard.writeText($("sqlPre").textContent).then(() => {
+          const ok = $("copyOk");
+          ok.style.opacity = "1";
+          setTimeout(() => (ok.style.opacity = "0"), 2000);
+        });
+      }
+
+      function setupDZ(dropZoneId, fileInputId) {
+        const dz = $(dropZoneId),
+          fi = $(fileInputId);
+        dz.onclick = () => fi.click();
+        dz.ondragover = (e) => {
+          e.preventDefault();
+          dz.classList.add("ov");
+        };
+        dz.ondragleave = () => dz.classList.remove("ov");
+        dz.ondrop = (e) => {
+          e.preventDefault();
+          dz.classList.remove("ov");
+          if (e.dataTransfer.files.length) loadF(e.dataTransfer.files[0]);
+        };
+        fi.onchange = (e) => {
+          if (e.target.files.length) loadF(e.target.files[0]);
+        };
+      }
+      setupDZ("dropZone", "fi1");
+      setupDZ("dropZone2", "fi2");
+
+      function showE(msg) {
+        console.log(msg);
+      }
+
+      function loadF(file) {
+        $("errMsg").style.display = "none";
+        $("spinner").style.display = "block";
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          Papa.parse(e.target.result, {
+            header: true, // Primeira linha eh cabecalho
+            skipEmptyLines: true,
+            dynamicTyping: false, // Controle manual de tipos
+            complete: (result) => {
+              $("spinner").style.display = "none";
+              if (!result.data || !result.data.length) {
+                showE("CSV vazio.");
+                return;
+              }
+              try {
+                init(result.data, result.meta.fields);
+              } catch (err) {
+                showE("Erro: " + err.message);
+              }
+            },
+            error: (err) => showE("Erro: " + err.message),
+          });
+        };
+        reader.readAsText(file, "UTF-8");
+      }
+
+      function init(rows, fields) {
+        $("uploadScreen").style.display = "none";
+        $("dash").style.display = "block";
+
+        // Detecta colunas automaticamente
+        C = {
+          id: findC(fields, ["id", "ID"]),
+          tipo: findC(fields, ["tipo_chamado", "tipo"]),
+          tempo: findC(fields, ["tempo_gasto", "tempo"]),
+          data: findC(fields, ["data_chamado", "data", "created_at"]),
+          titulo: findC(fields, ["titulo", "titulo", "title"]),
+          cat: findC(fields, ["categoria_detalhada", "categoria"]),
+          fluxo: findC(fields, ["fluxo_incidente", "fluxo"]),
+          tipoDoc: findC(fields, ["tipo_documento", "tipo_doc"]),
+          desc: findC(fields, ["descricao", "descricao"]),
+          descTec: findC(fields, ["descricao_tecnica"]),
+          coment: findC(fields, ["comentarios_dv"]),
+          // Questao 8
+          ref: findC(fields, [
+            "reforma_tributaria",
+            "reforma tributária",
+            "reforma",
+          ]),
+        };
+
+        // Questao 13
+        const alerta = document.getElementById("alertaId");
+        if (alerta) alerta.remove();
+        if (!C.id) {
+          const htmlAlerta = `
+            <div id="alertaId" >
+               <strong>Aviso:</strong> O seu CSV não possui a coluna ID.
+            </div>`;
+          $("fBar").insertAdjacentHTML("beforebegin", warningHtml);
+        }
+
+        // Pre-processa cada linha
+        rows.forEach((r) => {
+          // Data e mes (YYYY-MM)
+          r._date = null;
+          r._ym = null;
+          if (C.data) {
+            const d = new Date(r[C.data]);
+            if (!isNaN(d.getTime())) {
+              r._date = d;
+              r._ym =
+                d.getFullYear() +
+                "-" +
+                String(d.getMonth() + 1).padStart(2, "0");
+            }
+          }
+          r._tempo = C.tempo ? parseFloat(r[C.tempo]) || 0 : 0;
+          r._tipo = C.tipo ? (r[C.tipo] || "").trim() : "";
+          r._cat = C.cat ? (r[C.cat] || "").trim() : "";
+          r._fluxo = C.fluxo ? (r[C.fluxo] || "").trim() : "";
+          // Questao 8
+          r._ref = C.ref ? (r[C.ref] || "").trim() : "";
+          r._allDesc =
+            ((C.desc ? r[C.desc] : "") || "") +
+            " " +
+            ((C.descTec ? r[C.descTec] : "") || "");
+          r._allDescL = r._allDesc.toLowerCase();
+        });
+
+        ALL = rows;
+        FILTERED = [...ALL];
+        buildFilters();
+        render(FILTERED);
+      }
+
+      function buildFilters() {
+        const fb = $("fBar");
+        fb.innerHTML = "";
+        fb.style.display = "flex";
+        fb.insertAdjacentHTML("beforeend", "<label>Filtros:</label>");
+
+        const filtersConfig = [
+          { prop: "_ym", id: "fM", defaultText: "Todos os meses", format: mL },
+          { prop: "_tipo", id: "fT", defaultText: "Todos os tipos" },
+          { prop: "_fluxo", id: "fF", defaultText: "Todos os fluxos" },
+          { prop: "_cat", id: "fC", defaultText: "Todas as categorias" },
+          { prop: "_ref", id: "fR", defaultText: "Reforma Tributária (Todas)" },
+        ];
+
+        filtersConfig.forEach(({ prop, id, defaultText, format }) => {
+          const uniqueValues = [
+            ...new Set(ALL.map((x) => x[prop]).filter(Boolean)),
+          ].sort();
+
+          if (uniqueValues.length > 1) {
+            addSel(
+              fb,
+              id,
+              defaultText,
+              uniqueValues.map((val) => ({
+                v: val,
+                t: format ? format(val) : val,
+              })),
+            );
+          }
+        });
+      }
+
+      function addSel(container, id, placeholder, options) {
+        const select = document.createElement("select");
+        select.id = id;
+        select.innerHTML =
+          `<option value="">${placeholder}</option>` +
+          options
+            .map((o) => `<option value="${esc(o.v)}">${esc(o.t)}</option>`)
+            .join("");
+        select.onchange = applyF;
+        container.appendChild(select);
+      }
+
+      function applyF() {
+        let rows = [...ALL];
+        const gv = (id) => {
+          const el = document.getElementById(id);
+          return el ? el.value : "";
+        };
+
+        const vm = gv("fM");
+        if (vm) rows = rows.filter((x) => x._ym === vm);
+        const vt = gv("fT");
+        if (vt) rows = rows.filter((x) => x._tipo === vt);
+        const vf = gv("fF");
+        if (vf) rows = rows.filter((x) => x._fluxo === vf);
+        const vc = gv("fC");
+        if (vc) rows = rows.filter((x) => x._cat === vc);
+        const vr = gv("fR");
+        if (vr) rows = rows.filter((x) => x._ref === vr);
+
+        FILTERED = rows;
+        render(FILTERED);
+      }
+
+      function render(rows) {
+        charts.forEach((c) => c.destroy());
+        charts = [];
+        $("secs").innerHTML = "";
+        const N = rows.length;
+
+        const kpis = [{ l: "Total", v: N, s: "" }];
+        if (C.tipo) {
+          cm(rows.map((r) => r._tipo).filter(Boolean))
+            .slice(0, 3)
+            .forEach(([nome, qtd]) =>
+              kpis.push({
+                l: nome,
+                v: qtd,
+                s: fp(pct(qtd, N)),
+              }),
+            );
+        }
+
+        // Questao 10
+        if (C.data) {
+          const mes = cm(FILTERED.map((r) => r._ym).filter(Boolean))
+            .map(([nome, qtd]) => ({
+              nome,
+              quantidade: qtd,
+            }))
+            .sort()[0];
+          kpis.push({
+            l: "Mais chamados",
+            v: mL(mes["nome"]),
+            s: mes["quantidade"] + " chamados",
+          });
+        }
+
+        if (C.tempo) {
+          const total = rows.reduce((s, r) => s + r._tempo, 0);
+          const tempos = rows.map((r) => r._tempo);
+          kpis.push({ l: "Horas", v: fn(total) + "h", s: "Media ..." });
+          kpis.push({
+            l: "Mediana",
+            v: fn(med(tempos)) + "h",
+            s: "Mediana...",
+          });
+        }
+
+        $("kpiG").innerHTML = kpis
+          .map(
+            (k) => `
+    <div class="kpi">
+      <div class="kpi-l">${k.l}</div>
+      <div class="kpi-v">${k.v}</div>
+      <div class="kpi-s">${k.s}</div>
+    </div>
+  `,
+          )
+          .join("");
+        const SEC = $("secs");
+        let cid = 0;
+
+        function sec(titulo, html) {
+          SEC.insertAdjacentHTML(
+            "beforeend",
+            `
+      <div class="sec">
+        <div class="st"><span class="dot" style="..."></span>${esc(titulo)}</div>
+        ${html}
+      </div>`,
+          );
+        }
+
+        function cv(altura) {
+          const id = "c" + cid++;
+          return {
+            id,
+            h: `<div class="cw" style="height:${altura}px"><canvas id="${id}"></canvas></div>`,
+          };
+        }
+
+        function mc(canvasId, config) {
+          requestAnimationFrame(() => {
+            const el = $(canvasId);
+            if (el) charts.push(new Chart(el, config));
+          });
+        }
+
+        const months = [
+          ...new Set(ALL.filter((x) => x._ym).map((x) => x._ym)),
+        ].sort();
+
+        const types = [
+          ...new Set(ALL.filter((x) => x._tipo).map((x) => x._tipo)),
+        ].sort();
+
+        if (C.data && months.length > 1) {
+          const byMonth = {};
+          months.forEach((m) => (byMonth[m] = {}));
+          rows.forEach((r) => {
+            if (r._ym && byMonth[r._ym]) {
+              const key = r._tipo || "Chamado";
+              byMonth[r._ym][key] = (byMonth[r._ym][key] || 0) + 1;
+            }
+          });
+
+          const chartBox = cv(300);
+
+          sec("Evolução Mensal por Tipo", chartBox.h);
+
+          mc(chartBox.id, {
+            type: "bar",
+
+            data: {
+              labels: months.map(mL),
+              datasets: types.map((t, i) => ({
+                label: t,
+                data: months.map((m) => +pct(byMonth[m][t] || 0, N).toFixed(2)),
+                _raw: months.map((m) => byMonth[m][t] || 0),
+                backgroundColor: P[i % P.length],
+                borderRadius: 6,
+              })),
+            },
+            options: copts(true),
+          });
+
+          // Questao 9
+          {
+            const chartBox2 = cv(300);
+
+            sec("Horas totais por mês", chartBox2.h);
+
+            dataQ9 = {};
+
+            ALL.filter((x) => x._ym).map((x) => (dataQ9[x._ym] = 0));
+            ALL.filter((x) => x._ym).map(
+              (x) => (dataQ9[x._ym] += Number(x["tempo_gasto"])),
+            );
+
+            dadosQ9 = [
+              Object.entries(dataQ9).map(([k, v]) => mL(k)),
+              Object.entries(dataQ9).map(([k, v]) => v),
+            ];
+            mc(chartBox2.id, {
+              type: "line",
+              plugins: [ChartDataLabels],
+              data: {
+                labels: dadosQ9[0],
+                datasets: [
+                  {
+                    label: "Horas",
+                    data: dadosQ9[1],
+                    backgroundColor: "#6365f142",
+                    borderColor: "#6366f1",
+                    fill: true,
+                    tension: 0.15,
+                    borderRadius: 6,
+                  },
+                ],
+              },
+              options: {
+                scales: {
+                  x: { grid: { display: false } },
+                  y: {
+                    beginAtZero: true,
+                    grid: { color: "#f0f0f0" },
+                    ticks: { stepSize: 1 },
+                  },
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+
+                plugins: {
+                  legend: { display: false },
+                  datalabels: {
+                    display: true,
+                    anchor: "end",
+                    align: "top",
+                    offset: 2,
+                    font: {
+                      size: 10,
+                      weight: 600,
+                    },
+
+                    color: function (ctx) {
+                      return ctx.dataset.borderColor;
+                    },
+                  },
+                },
+              },
+            });
+            //fim
+          }
+        }
+      }
+
+      const ERR_PATTERNS = {
+        "Impostos (PIS/COFINS/ISS)": [
+          "pis",
+          "cofins",
+          "iss ",
+          "imposto",
+          "aliquota",
+          "retencao",
+          "\\bir\\b",
+          "inss",
+          "base.?calculo",
+        ],
+        "Regex / Mapeamento": [
+          "regex",
+          "mapeamento",
+          "expressao regular",
+          "pattern",
+        ],
+        "Campo nao lido / vazio": [
+          "campo vazio",
+          "nao esta lendo",
+          "nao esta capturando",
+        ],
+        // Questao 12
+        "Reforma Tributária": [
+          "reforma",
+          "cclasstrib",
+          "tributaria",
+          "tributos novos",
+          "tag nova",
+        ],
+        Telecomunicações: [
+          "telecom",
+          "telefonia",
+          "nota de telecom",
+          "fatura de telefone",
+        ],
+        "Treinamento de IA": [
+          "treinamento",
+          "classificador",
+          "treinar classificador",
+          "não classificou",
+        ],
+      };
+      if (C.desc) {
+        const ep = [];
+        for (const [pat, kws] of Object.entries(ERR_PATTERNS)) {
+          const cnt = rows.filter((r) =>
+            kws.some((kw) => new RegExp(kw, "i").test(r._allDescL)),
+          ).length;
+          if (cnt > 0) ep.push([pat, cnt]);
+        }
+        ep.sort((a, b) => b[1] - a[1]);
+        // Renderiza barras horizontais...
+      }
+      const insights = [];
+
+      if (C.cat) {
+        const catData = cm(rows.map((r) => r._cat).filter(Boolean));
+        const catTotal = catData.reduce((s, d) => s + d[1], 0);
+
+        if (catData[0])
+          insights.push({
+            cor: "var(--p1)",
+            titulo: "Principal causa",
+            texto:
+              `<strong>${esc(catData[0][0])}</strong>` +
+              ` - ${catData[0][1]} chamados (${fp(pct(catData[0][1], catTotal))}).`,
+          });
+
+        const naoBug = catData.find((d) =>
+          d[0].toLowerCase().includes("nao bug"),
+        );
+        if (naoBug && pct(naoBug[1], catTotal) > 10)
+          insights.push({ cor: "var(--p2)", titulo: "Nao Bug" });
+      }
+
+      if (insights.length)
+        sec(
+          "Insights",
+          `<div class="ig">${insights
+            .map(
+              (i) => `
+    <div class="ins" style="border-left:3px solid ${i.cor}">
+      <h4>${i.titulo}</h4><p>${i.texto}</p>
+    </div>`,
+            )
+            .join("")}</div>`,
+        );
+
+      function exportJSON() {
+        const rows = FILTERED;
+        const totalRegistros = rows.length;
+        const horasTotal = rows.reduce((s, r) => s + r._tempo, 0);
+
+        const resultado = {
+          meta: {
+            exportadoEm: new Date().toISOString(),
+            totalRegistros: totalRegistros,
+            totalGeral: ALL.length,
+          },
+          kpis: {
+            total: totalRegistros,
+            horasTotal: horasTotal,
+            horasMedia: totalRegistros > 0 ? horasTotal / totalRegistros : 0,
+            horasMediana: med(
+              rows.filter((r) => r._tempo > 0).map((r) => r._tempo),
+            ),
+          },
+          distribuicao: {
+            porTipo: cm(rows.map((r) => r._tipo).filter(Boolean)).map(
+              ([nome, qtd]) => ({
+                nome,
+                quantidade: qtd,
+                percentual: +pct(qtd, totalRegistros).toFixed(2),
+              }),
+            ),
+            porCategoria: cm(rows.map((r) => r._cat).filter(Boolean)).map(
+              ([nome, qtd]) => ({
+                nome,
+                quantidade: qtd,
+                percentual: +pct(qtd, totalRegistros).toFixed(2),
+              }),
+            ),
+            porFluxo: cm(rows.map((r) => r._fluxo).filter(Boolean)).map(
+              ([nome, qtd]) => ({
+                nome,
+                quantidade: qtd,
+                percentual: +pct(qtd, totalRegistros).toFixed(2),
+              }),
+            ),
+            porMes: cm(rows.map((r) => r._ym).filter(Boolean)).map(
+              ([nome, qtd]) => ({
+                nome,
+                quantidade: qtd,
+                percentual: +pct(qtd, totalRegistros).toFixed(2),
+              }),
+            ),
+          },
+          topChamados: [...rows]
+            .sort((a, b) => b._tempo - a._tempo)
+            .slice(0, 10)
+            .map((r) => ({
+              id: C.id ? r[C.id] : null,
+              tipo: r._tipo,
+              horas: r._tempo,
+            })),
+
+          dados: rows.map((r) => ({
+            id: C.id ? r[C.id] : null,
+            data: r._ym,
+            tipo: r._tipo,
+            categoria: r._cat,
+            tempo: r._tempo,
+          })),
+        };
+
+        const blob = new Blob([JSON.stringify(resultado, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `analise_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      Chart.register(ChartDataLabels);
+
+      Chart.defaults.set("plugins.datalabels", { display: false });
+
+      function copts(stacked) {
+        return {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            datalabels: {
+              display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+              formatter: (val, ctx) => {
+                const raw = ctx.dataset._raw?.[ctx.dataIndex];
+                return raw != null
+                  ? raw + " (" + val.toFixed(1) + "%)"
+                  : val.toFixed(1) + "%";
+              },
+            },
+          },
+          scales: {
+            x: { stacked: !!stacked, grid: { display: false } },
+            y: {
+              stacked: !!stacked,
+              beginAtZero: true,
+              ticks: { callback: (v) => v.toFixed(0) + "%" },
+            },
+          },
+        };
+      }
+
+      // Questao 11
+      function toggleTheme() {
+        document.documentElement.classList.toggle("dark");
+      }
+
+      // Questao 14
+      function exportarPDF() {
+        const btn = document.getElementById("btnPdf");
+        const textoOriginal = btn.innerHTML;
+
+        btn.innerHTML = "Gerando pdf";
+        btn.disabled = true;
+
+        const dashboard = document.querySelector(".exportaPDF");
+
+        dashboard.style.padding = "4px";
+
+        html2canvas(dashboard, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: document.documentElement.classList.contains("dark")
+            ? "#121212"
+            : "#f8f7f4",
+        })
+          .then((canvas) => {
+            const canvasImg = canvas.toDataURL("image/png");
+
+            const canvasImgWidth = canvas.width;
+            const canvasImgHeight = canvas.height;
+
+            const { jsPDF } = window.jspdf;
+
+            const pdf = new jsPDF({
+              orientation:
+                canvasImgWidth > canvasImgHeight ? "landscape" : "portrait",
+              unit: "px",
+              format: [canvasImgWidth, canvasImgHeight],
+            });
+
+            pdf.addImage(
+              canvasImg,
+              "PNG",
+              0,
+              0,
+              canvasImgWidth,
+              canvasImgHeight,
+            );
+
+            const data = new Date().toISOString().slice(0, 10);
+            pdf.save(`Dashboard_Leitura_${data}.pdf`);
+
+            // Restaura o botão
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+          })
+          .catch((err) => {
+            console.error("Erro ao gerar PDF: ", err);
+            alert("Ocorreu um erro ao tentar gerar o PDF.");
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+          });
+        dashboard.style.padding = "0px";
+      }
+    </script>
+  </body>
+</html>
